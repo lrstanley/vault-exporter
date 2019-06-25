@@ -1,80 +1,38 @@
-VERSION           ?= v0.1.2
-COMMIT            ?= $(shell git rev-parse --short HEAD)
-IMAGE_NAME        ?= grapeshot/vault_exporter
-DOCKER_IMAGE      ?= $(IMAGE_NAME):$(COMMIT)
+.DEFAULT_GOAL := build
 
-ECR								?= 163537733247.dkr.ecr.eu-west-1.amazonaws.com
-ECR_IMAGE         ?= $(ECR)/$(IMAGE_NAME):$(COMMIT)
-ECR_LOGIN_COMMAND := "eval $$\( aws ecr --profile jenkins get-login --no-include-email \)"
+GOPATH := $(shell go env | grep GOPATH | sed 's/GOPATH="\(.*\)"/\1/')
+PATH := $(GOPATH)/bin:$(PATH)
+export $(PATH)
 
-HUB_CREDENTIALS   ?= username:password
-HUB_SUBST         ?= $(subst :, ,$(HUB_CREDENTIALS))
-HUB_USERNAME      ?= $(word 1, $(HUB_SUBST))
-HUB_PASSWORD      ?= $(word 2, $(HUB_SUBST))
+# enable Go 1.11.x module support.
+export GO111MODULE=on
 
-GO                ?= go
-GOFMT             ?= $(GO)fmt
-GOOS              ?= linux
-GOARCH            ?= amd64
+BINARY=vault-exporter
+VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null | sed -r "s:^v::g")
 
-GITHUB_TOKEN      ?= nil
+help:
+		@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-# Contributing
-## All tools are installed to ~/bin/ (~/go in the case of go) which may need to be added to your $PATH
-OS                 ?= linux
-ARCH               ?= amd64
-GO_VERSION         := 1.10.3
-GORELEASER_VERSION := 0.77.1
+snapshot: clean fetch ## Generate a snapshot release.
+		$(GOPATH)/bin/goreleaser release --snapshot --skip-validate --skip-publish
 
+release: clean fetch ## Generate a release, but don't publish to GitHub.
+		$(GOPATH)/bin/goreleaser release --skip-validate --skip-publish
 
-build:
-	env GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o _output/bin/vault_exporter-$(VERSION).$(GOOS)-$(GOARCH)
-	ln -s vault_exporter-$(VERSION).$(GOOS)-$(GOARCH) ./_output/bin/vault_exporter
-.PHONY: build
+publish: clean fetch ## Generate a release, and publish to GitHub.
+		$(GOPATH)/bin/goreleaser release
 
-build-image:
-	docker build -t $(DOCKER_IMAGE) .
-	docker tag $(DOCKER_IMAGE) $(ECR_IMAGE)
-.PHONY: build-image
+fetch: ## Fetches the necessary dependencies to build.
+		test -f $(GOPATH)/bin/goreleaser || go get -u -v github.com/goreleaser/goreleaser
+		go mod download
+		go mod tidy
+		go mod vendor
 
-clean:
-	rm -rf _output
-.PHONY: clean
+clean: ## Cleans up generated files/folders from the build.
+		/bin/rm -rfv "dist/" "${BINARY}"
 
-ecr-login:
-	@eval $(ECR_LOGIN_COMMAND)
-.PHONY: ecr-login
-
-ecr-push: ecr-login
-	docker push $(ECR_IMAGE)
-	docker tag $(DOCKER_IMAGE) $(ECR)/$(IMAGE_NAME):$(VERSION)
-	docker push $(ECR)/$(IMAGE_NAME):$(VERSION)
-.PHONY: ecr-login
-
-ecr-release: ecr-login
-	docker tag $(DOCKER_IMAGE) $(ECR)/$(IMAGE_NAME):$(VERSION)
-	docker push $(ECR)/$(IMAGE_NAME):$(VERSION)
-.PHONY: ecr-release
-
-format:
-	$(GOFMT) -s -w .
-.PHONY: format
-
-github-release:
-	env GITHUB_TOKEN=$(GITHUB_TOKEN) goreleaser --rm-dist
-
-hub-login:
-	docker login --username=$(HUB_USERNAME) --password=$(HUB_PASSWORD)
-.PHONY: hub-login
-
-hub-push: hub-login
-	docker push $(DOCKER_IMAGE)
-.PHONY: hub-push
-
-hub-release: hub-login
-	docker tag $(DOCKER_IMAGE) $(IMAGE_NAME):$(VERSION)
-	docker push $(IMAGE_NAME):$(VERSION)
-.PHONY: hub-release
+build: fetch clean ## Compile and generate a binary.
+		go build -ldflags '-d -s -w' -tags netgo -installsuffix netgo -v -x -o "${BINARY}"
 
 install-tools: install-go install-go-releaser
 .PHONY: install-tools
@@ -91,21 +49,3 @@ install-goreleaser:
 	tar -C ~/bin -xzf /tmp/goreleaser_Linux_x86_64.tar.gz goreleaser
 	rm -r /tmp/goreleaser_Linux_x86_64.tar.gz
 .PHONY: install-goreleaser
-
-
-lint:
-	# To install gometalinter
-	# `go get -u gopkg.in/alecthomas/gometalinter.v2`
-	# `gometalinter.v2 --install`
-	gometalinter.v2 --vendor --deadline=5m
-.PHONY: lint
-
-release: tag-release github-release ecr-release hub-release
-
-tag-release:
-	git tag $(VERSION)
-.PHONY: tag-release
-
-update-dependencies:
-	dep ensure
-.PHONY: update-vendor
