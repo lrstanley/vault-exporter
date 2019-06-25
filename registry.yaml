@@ -1,0 +1,6 @@
+apiVersion: '0.1'
+kind: ksonnet.io/registry
+libraries:
+  vault-mixin:
+    version: master
+    path: vault-mixin

@@ -1,0 +1,16 @@
+builds:
+  - main: main.go
+    binary: vault_exporter
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - 386
+archive:
+  format: tar.gz
+  files:
+    - README.md
+    - LICENSE
+
+dist: _output

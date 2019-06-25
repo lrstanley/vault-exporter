@@ -1,0 +1,27 @@
+{
+  "name": "vault-mixin",
+  "apiVersion": "0.0.1",
+  "kind": "ksonnet.io/parts",
+  "description": "Set of dashboards and alerts for Vault.",
+  "author": "Grapeshot Ltd",
+  "contributors": [
+    {
+    "name": "Tom Wilkie",
+    "email": "tom.wilkie@gmail.com"
+    },
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grapeshot/vault_exporter"
+  },
+  "bugs": {
+    "url": "https://github.com/grapeshot/vault_exporter/issues"
+  },
+  "keywords": [
+    "Prometheus",
+    "Monitoring",
+    "Grafana",
+    "Vault",
+  ],
+  "license": "Apache 2.0"
+}
