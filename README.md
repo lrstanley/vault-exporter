@@ -1,8 +1,16 @@
 # Vault Exporter
 
-Export [Hashicorp Vault](https://github.com/hashicorp/vault) health to [Prometheus](https://github.com/prometheus/prometheus).
+## ⚠ NOT MAINTAINED ⚠
 
-**NOTE: this is a MIRROR of a recently deleted github repository under: https://github.com/grapeshot/vault_exporter**
+This is a MIRROR of a deleted github repository under: https://github.com/grapeshot/vault_exporter
+
+Recent versions of Hashicorp Vault have added native support for the majority of what was prevviously provided by this exporter. As such, this shouldn't be used anymore.
+
+   * Hashicorp Vault Telemetry (Prometheus): https://www.vaultproject.io/docs/configuration/telemetry#prometheus
+
+--------------------------------
+
+Export [Hashicorp Vault](https://github.com/hashicorp/vault) health to [Prometheus](https://github.com/prometheus/prometheus).
 
 ## Exported Metrics
 
